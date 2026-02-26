@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Smart Bookmark Manager</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #4e73df, #1cc88a);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            width: 450px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+        }
+
+        button {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 5px;
+        }
+
+        .add-btn {
+            width: 100%;
+            background: #4e73df;
+            color: white;
+        }
+
+        .add-btn:hover {
+            background: #2e59d9;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+            margin-top: 20px;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        li {
+            background: #f8f9fc;
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        a {
+            text-decoration: none;
+            color: #4e73df;
+            font-weight: bold;
+        }
+
+        .delete-btn {
+            background: #e74a3b;
+            color: white;
+        }
+
+        .delete-btn:hover {
+            background: #c0392b;
+        }
+
+        .edit-btn {
+            background: #f6c23e;
+            margin-right: 5px;
+        }
+
+        .edit-btn:hover {
+            background: #dda20a;
+        }
+
+        .actions {
+            display: flex;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🔖 Smart Bookmark</h1>
+
+    <input type="text" id="title" placeholder="Enter Title">
+    <input type="text" id="url" placeholder="Enter URL">
+    <button class="add-btn" onclick="addBookmark()">Add Bookmark</button>
+
+    <ul id="list"></ul>
+</div>
+
+<script>
+const API = "/api/bookmarks/";
+let editingId = null;
+
+function loadBookmarks() {
+    fetch(API)
+    .then(res => res.json())
+    .then(data => {
+        const list = document.getElementById("list");
+        list.innerHTML = "";
+        data.forEach(item => {
+            list.innerHTML += `
+                <li>
+                    <a href="${item.url}" target="_blank">${item.title}</a>
+                    <div class="actions">
+                        <button class="edit-btn" onclick="editBookmark(${item.id}, '${item.title}', '${item.url}')">Edit</button>
+                        <button class="delete-btn" onclick="deleteBookmark(${item.id})">Delete</button>
+                    </div>
+                </li>
+            `;
+        });
+    });
+}
+
+function addBookmark() {
+    const title = document.getElementById("title").value;
+    const url = document.getElementById("url").value;
+
+    if (!title || !url) {
+        alert("Please enter both Title and URL");
+        return;
+    }
+
+    if (editingId) {
+        fetch(API + editingId + "/", {
+            method: "PUT",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ title, url })
+        }).then(() => {
+            editingId = null;
+            clearInputs();
+            loadBookmarks();
+        });
+    } else {
+        fetch(API, {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ title, url })
+        }).then(() => {
+            clearInputs();
+            loadBookmarks();
+        });
+    }
+}
+
+function editBookmark(id, title, url) {
+    document.getElementById("title").value = title;
+    document.getElementById("url").value = url;
+    editingId = id;
+}
+
+function deleteBookmark(id) {
+    fetch(API + id + "/", { method: "DELETE" })
+    .then(() => loadBookmarks());
+}
+
+function clearInputs() {
+    document.getElementById("title").value = "";
+    document.getElementById("url").value = "";
+}
+
+loadBookmarks();
+</script>
+
+</body>
+</html>
